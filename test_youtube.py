@@ -31,7 +31,7 @@ def main():
                 maxResults=30,
                 order="viewCount",
                 type="channel",
-                q="발로란트", # Keywords: Fashion, Lookbook, Outfit
+                q="의류", # Keywords: Fashion, Lookbook, Outfit
                 regionCode="KR", # Filter for South Korea
                 relevanceLanguage="ko", # Filter for Korean language
                 pageToken=next_page_token
@@ -115,3 +115,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#a82699915@gmail.com
