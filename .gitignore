@@ -9,3 +9,8 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# Local Test/Scratchpad Files
+faker.py
+test_youtube.py
+src/influencer_inviteai/test.py
