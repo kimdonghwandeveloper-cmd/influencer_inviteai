@@ -1,0 +1,20 @@
+[project]
+name = "influencer-inviteai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "김동환", email = "kimdonghwandeveloper@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "google-api-python-client",
+    "python-dotenv",
+]
+
+[project.scripts]
+influencer-inviteai = "influencer_inviteai:main"
+
+[build-system]
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"
