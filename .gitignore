@@ -1,5 +1,6 @@
 # Python-generated files
 __pycache__/
+**/__pycache__/
 *.py[oc]
 build/
 dist/
@@ -8,16 +9,35 @@ wheels/
 
 # Virtual environments
 .venv
+**/.venv
 .env
+**/.env
+
+# Node.js
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Root level occasional noise
+/package.json
+/package-lock.json
 
 # Local Test/Scratchpad Files
 faker.py
 test_youtube.py
 src/influencer_inviteai/test.py
+debug_*.py
+inspect_*.py
 
 # Temporary Data/Debug Files
 *.html
 *.txt
-debug_*.py
-inspect_*.py
-faker.py
+*.log
+
+# INMA Specific
+INMA_influencers/token_cache.json
+INMA_influencers/static/
+# We ignore static because it likely gets populated by frontend build
