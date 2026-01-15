@@ -3,8 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { Search, Zap, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
-
-const API_URL = 'http://localhost:8000';
+import { api } from '../lib/api';
 
 export default function Matching() {
     const [selectedProduct, setSelectedProduct] = useState(null);
@@ -13,7 +12,7 @@ export default function Matching() {
     const { data: products } = useQuery({
         queryKey: ['products'],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/products`);
+            const res = await api.get(`/products`);
             return res.data;
         }
     });
@@ -21,7 +20,7 @@ export default function Matching() {
     // 2. Match Mutation
     const matchMutation = useMutation({
         mutationFn: async (productId) => {
-            const res = await axios.post(`${API_URL}/match`, { product_id: productId, limit: 10 });
+            const res = await api.post(`/match`, { product_id: productId, limit: 10 });
             return res.data;
         }
     });

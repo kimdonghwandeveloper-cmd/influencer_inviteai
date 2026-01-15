@@ -1,22 +1,30 @@
+
 import React, { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { Send, Save, RefreshCw } from 'lucide-react';
-
-const API_URL = 'http://localhost:8000';
+import { Send, Plus, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { cn } from '../lib/utils';
+import { api } from '../lib/api';
 
 export default function Campaigns() {
     const [formData, setFormData] = useState({
         subject: '[제안] 안녕하세요, 협업 제안드립니다.',
-        body: `안녕하세요,\n\n저희는 ... 브랜드입니다.\n\n귀하의 채널을 흥미롭게 보았습니다.`,
+        body: `안녕하세요, \n\n저희는 ...브랜드입니다.\n\n귀하의 채널을 흥미롭게 보았습니다.`,
         limit: 50,
         tag_prefix: 'INMA',
         dry_run: true
     });
 
     const sendMutation = useMutation({
-        mutationFn: async (data) => {
-            const res = await axios.post(`${API_URL}/send/influencers`, data);
+        mutationFn: async (formData) => {
+            // 실제로는 /campaign/send 같은 엔드포인트 사용
+            // 여기서는 /send_influencers (예시)
+            const res = await api.post(`/ send_influencers`, {
+                subject: formData.subject,
+                body: formData.body,
+                limit: parseInt(formData.limit),
+                min_inma_score: parseFloat(formData.minScore),
+                dry_run: false
+            });
             return res.data;
         }
     });

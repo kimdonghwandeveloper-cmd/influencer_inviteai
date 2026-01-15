@@ -3,9 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Search, Filter, Mail, Users, Star, BarChart3, Youtube } from 'lucide-react';
 import { cn } from '../lib/utils';
-
-// API Configuration
-const API_URL = 'http://localhost:8000';
+import { api } from '../lib/api';
 
 export default function Influencers() {
     const [page, setPage] = useState(1);
@@ -15,7 +13,7 @@ export default function Influencers() {
     const { data, isLoading, isError } = useQuery({
         queryKey: ['influencers', page, search, category],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/influencers`, {
+            const res = await api.get(`/influencers`, {
                 params: { page, limit: 12, search, category }
             });
             return res.data;

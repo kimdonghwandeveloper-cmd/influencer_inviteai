@@ -1,16 +1,14 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { Users, ShoppingBag, Mail, BarChart3, TrendingUp, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
-
-const API_URL = 'http://localhost:8000';
+import { api } from '../lib/api';
 
 export default function Dashboard() {
     const { data: stats, isLoading, isError, refetch } = useQuery({
         queryKey: ['stats'],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/stats`);
+            const res = await api.get(`/stats`);
             return res.data;
         }
     });
