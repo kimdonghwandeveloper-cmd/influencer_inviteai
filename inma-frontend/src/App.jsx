@@ -1,12 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Zap, Send, Inbox } from 'lucide-react';
+import { LayoutDashboard, Users, Zap, Send, Inbox as InboxIcon } from 'lucide-react';
 import { cn } from './lib/utils';
 // Pages
 import Dashboard from './pages/Dashboard';
 import Influencers from './pages/Influencers';
 import Matching from './pages/Matching';
 import Campaigns from './pages/Campaigns';
+import Inbox from './pages/Inbox';
 
 const NavItem = ({ to, icon: Icon, label }) => {
   const location = useLocation();
@@ -56,7 +57,7 @@ function Layout({ children }) {
           <NavItem to="/influencers" icon={Users} label="인플루언서" />
           <NavItem to="/matching" icon={Zap} label="매칭" />
           <NavItem to="http://3.38.182.201:8001/" icon={Send} label="캠페인" />
-          <NavItem to="/inbox" icon={Inbox} label="수신함" />
+          <NavItem to="/inbox" icon={InboxIcon} label="수신함" />
         </div>
 
         <div className="mt-auto px-4 py-4 text-xs text-muted-foreground">
@@ -83,7 +84,7 @@ export default function App() {
           <Route path="/influencers" element={<Influencers />} />
           <Route path="/matching" element={<Matching />} />
           <Route path="/campaigns" element={<Campaigns />} />
-          <Route path="/inbox" element={<div className="text-2xl font-bold">Inbox</div>} />
+          <Route path="/inbox" element={<Inbox />} />
         </Routes>
       </Layout>
     </Router>
