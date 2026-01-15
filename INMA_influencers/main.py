@@ -38,7 +38,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 oa = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 
-MONGODB_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI")
+MONGODB_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI") or os.getenv("MONGO_PUBLIC_URL")
 MONGODB_DB = os.getenv("MONGODB_DB", "inma")
 MONGODB_KB_COLLECTION = os.getenv("MONGODB_KB_COLLECTION", "kb")
 MONGODB_VECTOR_INDEX = os.getenv("MONGODB_VECTOR_INDEX", "kb_vector_index")

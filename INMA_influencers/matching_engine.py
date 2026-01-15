@@ -10,7 +10,7 @@ load_dotenv(override=True)
 
 class MatchingEngine:
     def __init__(self):
-        self.uri = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI")
+        self.uri = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI") or os.getenv("MONGO_PUBLIC_URL")
         self.db_name = os.getenv("DB_NAME") or os.getenv("MONGODB_DB")
         
         if not self.uri or not self.db_name:
