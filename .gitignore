@@ -14,3 +14,10 @@ wheels/
 faker.py
 test_youtube.py
 src/influencer_inviteai/test.py
+
+# Temporary Data/Debug Files
+*.html
+*.txt
+debug_*.py
+inspect_*.py
+faker.py

@@ -86,7 +86,7 @@ class YouTubeCollector:
                     "total_views": int(item["statistics"].get("viewCount", 0)),
                     "video_count": int(item["statistics"].get("videoCount", 0)),
                 },
-                "inma_score": 0.0, # 추후 계산될 자체 품질 점수
+                # "inma_score": 0.0, # 추후 계산될 자체 품질 점수
                 "category": [], 
                 "last_updated": datetime.utcnow()
             }
@@ -271,17 +271,24 @@ class YouTubeCollector:
             
         avg_interval = sum(intervals) / len(intervals) if intervals else 30 # 기본값 30일
         
+        # [조건 추가] 업로드 주기 한 달(30일) 이내 (사용자 요청)
+        if avg_interval > 30.0:
+            print(f"  [탈락] 업로드 주기 초과: {avg_interval:.1f}일 > 30일")
+            return None, []
+        
         # 3. 참여도(Engagement) 계산을 위한 통계 조회
         video_ids = [v["_id"] for v in videos]
         stats_map = self._fetch_video_stats(video_ids) # 배치 조회 (최적화)
         
         total_views = 0
+        total_likes = 0  # [추가] 좋아요 합계
         valid_videos_count = 0
         
         for v in videos:
             stats = stats_map.get(v["_id"])
             if stats:
                 total_views += stats["view_count"]
+                total_likes += stats["like_count"] # [추가]
                 valid_videos_count += 1
                 v["metrics"] = stats # 영상 객체에 통계 정보 병합 (재사용)
         
@@ -289,6 +296,8 @@ class YouTubeCollector:
             return None, []
             
         avg_views = total_views / valid_videos_count
+        avg_likes = total_likes / valid_videos_count # [추가] 평균 좋아요
+        
         subscribers = channel_info["stats"]["subscribers"]
         
         # 참여도 계산 (평균 조회수 / 구독자 수)
@@ -313,6 +322,11 @@ class YouTubeCollector:
         
         final_score = (engagement_rate * 10) * consistency_multiplier * recency_score
         
+        # [패널티] 이메일 미보유 시 점수 50% 차감 (Reranking 전략)
+        if not channel_info.get("email"):
+            final_score *= 0.5
+            print(f"  [패널티] 이메일 없음 (점수 50% 차감): {final_score:.1f}")
+        
         print(f"  [합격] Score: {final_score:.1f} | 참여도: {engagement_rate:.2f}% | 주기: {avg_interval:.1f}일 | 최신: {days_since_upload}일 전")
         
         # [데이터 구조 변경] 영상 개별 저장 대신, 채널 정보에 요약본 통합 (RAG 최적화)
@@ -330,7 +344,7 @@ class YouTubeCollector:
         }
 
         # [최종 스키마 정제] 사용자 요청 필드 중심으로 재구성
-        # 요청: 이메일, 아이디(Title), 설명, 평균 조회수, 구독자, 업로드 주기
+        # 요청: 이메일, 아이디(Title), 설명, 평균 조회수, 구독자, 업로드 주기, +좋아요, +영상개수
         final_profile = {
             "_id": channel_info["_id"],
             "title": channel_info["title"],            # 아이디 (채널명)
@@ -338,7 +352,10 @@ class YouTubeCollector:
             "email": channel_info["email"],            # 이메일
             "stats": {
                 "subscribers": channel_info["stats"]["subscribers"], # 구독자
-                "avg_views": int(avg_views),                         # 평균 조회수
+                "avg_views": int(avg_views),                         # 평균 조회수 (최근 영상 기준)
+                "avg_likes": int(avg_likes),                         # 평균 좋아요 (최근 영상 기준)
+                "total_view_count": channel_info["stats"]["total_views"], # [추가] 채널 총 조회수
+                "total_videos": channel_info["stats"]["video_count"],# 총 영상 개수
                 "upload_cycle": round(avg_interval, 1)               # 업로드 주기
             },
             # RAG/검색을 위한 최소한의 메타데이터 유지
@@ -369,8 +386,9 @@ class YouTubeCollector:
         results = []
         next_page_token = None
         
-        # 1000명의 후보를 검토하기 위해 시도 횟수 증가 (20 Pages * 50 Results = 1000 Candidates)
-        max_attempts = 20 
+        # 10000번의 검색 시도 (User Request: "만번 정도 돌리죠")
+        # 10000 Pages * 50 Results = 500,000 Candidates Scan Potential
+        max_attempts = 1000 
         attempts = 0
 
         while len(results) < limit and attempts < max_attempts:
@@ -425,10 +443,10 @@ class YouTubeCollector:
                         "stats": {
                             "subscribers": int(item["statistics"].get("subscriberCount", 0)),
                             "video_count": int(item["statistics"].get("videoCount", 0)),
-                            "view_count": int(item["statistics"].get("viewCount", 0)),
+                            "total_views": int(item["statistics"].get("viewCount", 0)), # [수정] 통일성 확보 (view_count -> total_views)
                         },
-                        "inma_score": 0.0,
-                        "category": [],
+                        # "inma_score": 0.0, # 추후 계산될 자체 품질 점수
+                        "category": [], 
                         "last_updated": datetime.utcnow()
                     }
                     
@@ -444,22 +462,31 @@ class YouTubeCollector:
                     if context_keyword:
                         # 너무 엄격하면 0건이 되므로, '점수 가산' 방식으로 변경하거나 로깅만 수행
                         if context_keyword in full_text:
-                            channel_info["inma_score"] += 10 # 가산점
+                           # channel_info["inma_score"] += 10 # 가산점
+                           pass
                         # else:
                         #     continue # 주석 처리: 엄격 필터 해제
 
+                    print(f"후보 발견: {channel_info['title']} (구독자: {channel_info['stats']['subscribers']}) - 분석 중...")
+                    
                     # [1차 필터] 기본 조건 검사 - 디버그 로그 추가
-                    if channel_info["stats"]["subscribers"] < 1000:
-                        print(f"  [Skip] 구독자 미달: {channel_info['stats']['subscribers']} < 1000 ({channel_info['title']})")
+                    # 1. 이메일 필수 (사용자 요청: 이메일 없으면 저장 X)
+                    # 1. 이메일 필수 제거 -> 점수 패널티로 변경
+                    if not email_text:
+                        print(f"  [Info] 이메일 없음 (심층 분석 진행 및 패널티 적용) - ({channel_info['title']})")
+                        # continue (제거됨)
+                        
+                    # 2. 구독자 5천명 이상 (수집량 증대를 위해 완화)
+                    if channel_info["stats"]["subscribers"] < 5000:
+                        print(f"  [Skip] 구독자 미달: {channel_info['stats']['subscribers']} < 5000 ({channel_info['title']})")
                         continue
+
                     if channel_info["stats"]["video_count"] < 5:
                         print(f"  [Skip] 영상 수 미달: {channel_info['stats']['video_count']} < 5 ({channel_info['title']})")
                         continue
                     if not channel_info["description"].strip():
                         print(f"  [Skip] 설명 없음 ({channel_info['title']})")
                         continue
-                        
-                    print(f"후보 발견: {channel_info['title']} (구독자: {channel_info['stats']['subscribers']}) - 분석 중...")
                     
                     # [2차 필터] 심층 분석 (Cost 발생: Playlist + Video Stats)
                     # 여기서 반환된 videos는 이미 상세 metrics가 채워져 있음 (최적화 포인트)
@@ -493,11 +520,11 @@ class YouTubeCollector:
 # 메인 실행 블록
 if __name__ == "__main__":
     # 전략: 넓게 찾고(Broad Search) -> 좁히기(Relavance Filter)
-    # 1. API에는 '육아', '운동' 만 검색 (결과 많이 나옴)
-    # 2. 코드 레벨에서 '의류' 라는 단어가 있는지 검사
+    # 1. API에는 'IT', '로지텍', '자동차' 검색
+    # 2. 주 키워드 필터는 임시 해제
     
-    PRIMARY_KEYWORD = "의류" 
-    SECONDARY_KEYWORDS = ["패션", "운동", "육아"]
+    PRIMARY_KEYWORD = None 
+    SECONDARY_KEYWORDS = ["IT", "게임","육아","의류","운동","뷰티","자동차","패션"]
     
     MAX_WORKERS = 3 
     
@@ -513,8 +540,8 @@ if __name__ == "__main__":
         """
         local_collector = YouTubeCollector()
         print(f"\n[Thread-Start] 카테고리 '{target_keyword}' 탐색 시작")
-        # API에는 target_keyword("육아")만 던지고, context_keyword로 "의류"를 넘겨서 필터링
-        return local_collector.search_channels(target_keyword, context_keyword=PRIMARY_KEYWORD, limit=3) 
+        # API에는 target_keyword("육아")만 던지고, context_keyword로 "의류"를 넘겨서 필터링 (주키워드 없이 진행)
+        return local_collector.search_channels(target_keyword, context_keyword=PRIMARY_KEYWORD, limit=10000) 
 
     # ThreadPoolExecutor를 사용하여 병렬 실행
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
@@ -529,19 +556,5 @@ if __name__ == "__main__":
             except Exception as exc:
                 print(f"카테고리 '{kw}' 처리 중 예외 발생: {exc}")
 
-    print(f"\n=== 총 {len(all_qualified_data)}개의 유효 채널 확보. 자막(Content) 수집 시작 ===")
-    
-    # 자막 데이터 보강
-    collector = YouTubeCollector() 
-    
-    for channel, videos in all_qualified_data:
-        print(f"\n[채널] {channel['title']} 자막 수집 중...")
-        
-        for video in videos:
-            print(f"    - 자막 추출: {video['title']}")
-            transcript = collector.get_video_transcript(video["_id"])
-            
-            video["transcript_summary"] = transcript[:500] + "..." if transcript else ""
-            collector.save_to_mongo("contents", video)
-
+    print(f"\n=== 총 {len(all_qualified_data)}개의 유효 채널 확보 ===")
     print("\n=== 모든 수집 작업 완료 ===")
